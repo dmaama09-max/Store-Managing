@@ -12,16 +12,16 @@ class Produit
     private int $seuilAlerte;
 
     public function __construct(
-        string $reference,
         string $nom,
-        float $prixAchat,
         float $prixVente,
         int $quantiteStock = 0,
-        int $seuilAlerte = 0,
+        ?string $reference = null,
+        float $prixAchat = 0.0,
+        int $seuilAlerte = 5,
         ?int $id = null
     ) {
         $this->id            = $id;
-        $this->reference     = $reference;
+        $this->reference     = $reference ?? self::genererReference($nom);
         $this->nom           = $nom;
         $this->prixAchat     = $prixAchat;
         $this->prixVente     = $prixVente;
@@ -29,12 +29,16 @@ class Produit
         $this->seuilAlerte   = $seuilAlerte;
     }
 
-    // ===== Méthodes métier =====
 
-    /**
-     * Diminue le stock. Lève une exception si le stock est insuffisant,
-     * plutôt que de laisser quantiteStock devenir négatif.
-     */
+    private static function genererReference(string $nom): string
+    {
+        $prefixe = strtoupper(substr(preg_replace('/[^a-zA-Z]/', '', $nom), 0, 3));
+        $prefixe = $prefixe !== '' ? $prefixe : 'PRD';
+        $code    = strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
+
+        return "{$prefixe}-{$code}";
+    }
+
     public function decrementerStock(int $qte): void
     {
         if ($qte <= 0) {
@@ -46,26 +50,33 @@ class Produit
         $this->quantiteStock -= $qte;
     }
 
-    /**
-     * Augmente le stock (ex: lors d'une réception d'approvisionnement).
-     */
-    public function incrementerStock(int $qte): void
+
+
+
+    public function incrementerStock(int $qte, ?float $prixAchatUnitaire = null): void
     {
         if ($qte <= 0) {
             throw new InvalidArgumentException("La quantité à incrémenter doit être positive.");
         }
+
+        if ($prixAchatUnitaire !== null) {
+            $valeurStockActuel = $this->quantiteStock * $this->prixAchat;
+            $valeurEntree       = $qte * $prixAchatUnitaire;
+            $nouvelleQuantite   = $this->quantiteStock + $qte;
+
+            $this->prixAchat = ($valeurStockActuel + $valeurEntree) / $nouvelleQuantite;
+        }
+
         $this->quantiteStock += $qte;
     }
 
-    /**
-     * Vrai si le stock est descendu au niveau (ou sous) le seuil d'alerte.
-     */
+
+    
     public function estEnRupture(): bool
     {
         return $this->quantiteStock <= $this->seuilAlerte;
     }
 
-    // ===== Getters (lecture seule depuis l'extérieur) =====
 
     public function getId(): ?int
     {
@@ -102,10 +113,6 @@ class Produit
         return $this->seuilAlerte;
     }
 
-    /**
-     * Utile après un INSERT en base : le Repository appellera ceci
-     * pour donner à l'objet l'id généré par la base de données.
-     */
     public function setId(int $id): void
     {
         $this->id = $id;
