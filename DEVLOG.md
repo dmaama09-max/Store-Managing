@@ -19,7 +19,7 @@
   - Réflexion sur l'encapsulation.
 - **Difficultés / Obstacles** :
   - Difficulté à adapter cette exigence du cahier des charges relatif au Diagramme de Cas d'Utilisation identifiant les 4 profils : Admin, Vente, Stock, Inventaire..
-  - Hésitation sur le choix d'utiliser la généralisation d'acteurs.
+  - Hésitation sur le choix d'utiliser la généralisation d'acteurs, sur qui devait avoir accès à quoi entre Vente et Stock.
 
 #### Step 1.2 : Schéma SQL PostgreSQL / SQLite (20h30 - 22h00)
 - **Heure de réalisation** :02h30 - 04h00
@@ -30,12 +30,21 @@ Ajout de clés étrangères (FK) avec des règles ON DELETE adaptées (CASCADE p
 Écriture de schema_sqlite.sql, version équivalente adaptée aux types SQLite (TEXT/REAL/INTEGER au lieu de VARCHAR/NUMERIC/SERIAL), avec activation de PRAGMA foreign_keys = ON.
 
 - **Difficultés / Obstacles** :
+- Confusion initiale sur le rôle de schema_sqlite.sql : je pensais que c'était un simple doublon de schema.sql, alors que c'est une traduction syntaxique du même schéma logique adaptée au moteur SQLite (SERIAL → INTEGER AUTOINCREMENT, VARCHAR → TEXT, NUMERIC → REAL, etc.).
+- Doute sur l'installation de SQLite : je pensais qu'il fallait démarrer un service comme pour PostgreSQL. Vérification faite avec php -m | grep -i sqlite, qui a confirmé que pdo_sqlite et sqlite3 étaient déjà disponibles — rien à installer côté serveur, SQLite n'étant qu'un fichier lu directement par PHP.
+- Compris qu'il fallait activer manuellement les clés étrangères sous SQLite via PRAGMA foreign_keys = ON;, contrairement à PostgreSQL où elles sont actives par défaut.
 
 
 #### Step 1.3 : Singleton Database & Fallback Automatique (22h00 - 23h00)
-- **Heure de réalisation** :
+- **Heure de réalisation** : 04h00 - 05h00
 - **Ce qui a été fait** :
+- Création de src/Core/Database.php implémentant le pattern Singleton : constructeur private, propriété statique $instance, et méthode statique getInstance() qui renvoie toujours la même connexion PDO.
+- Implémentation du fallback try/catch : tentative de connexion PostgreSQL en premier, bascule automatique sur SQLite (fichier erp.db) si la connexion échoue, sans faire planter l'application.
+- Décision de ne pas utiliser les namespaces PHP ni l'autoload Composer pour ce projet (trop tôt dans mon apprentissage POO), donc adaptation du code pour fonctionner avec un simple require_once classique.
 - **Difficultés / Obstacles** :
+- Compréhension du principe du Singleton : pourquoi le constructeur doit être private et à quoi sert la méthode statique getInstance() pour garantir une seule instance de connexion dans toute l'application.
+- Choix conscient de na pas utiliser namespace App\Core; : n'ayant pas encore mis en place l'autoload Composer, j'ai préféré une version simplifiée avec require_once pour rester maîtrisable en autonomie, quitte à devoir répéter le require dans chaque fichier qui utilise Database.
+- Compris qu'il fallait activer PRAGMA foreign_keys = ON; directement dans le code PHP au moment de la connexion SQLite, et pas seulement dans le script schema_sqlite.sql.
 
 ---
 
