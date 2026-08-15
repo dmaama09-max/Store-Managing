@@ -1,0 +1,20 @@
+@startuml Acteurs
+
+actor "Utilisateur" as U
+actor "Admin" as Admin
+actor "Vente" as Vente
+actor "Stock" as Stock
+actor "Inventaire" as Inventaire
+
+Admin --|> U
+Vente --|> U
+Stock --|> U
+Inventaire --|> U
+
+note right of U : Tous les profils héritent\nde la capacité "Se connecter"
+note right of Admin : Accès total (statistiques,\ngestion clients/fournisseurs, rôles)
+note right of Vente : Enregistrer des ventes,\ngérer les dettes clients
+note right of Stock : Réceptionner les BL,\ngérer les produits
+note right of Inventaire : Consulter le stock,\nles alertes de rupture
+
+@enduml

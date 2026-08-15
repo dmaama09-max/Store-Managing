@@ -1,0 +1,67 @@
+@startuml Approvisionnement
+
+left to right direction
+
+actor "Stock" as Stock
+actor "Admin" as Admin
+
+rectangle "Approvisionnement" {
+
+    usecase "Se connecter" as SC
+
+
+    ' =========================
+    ' Statistiques
+    ' =========================
+
+    usecase "Afficher les statistiques" as ASA
+
+    usecase "Coût total des entrées" as CTE
+    usecase "Bons de réception (BL)" as BR
+    usecase "Fournisseurs actifs" as FA
+
+
+    ' =========================
+    ' Bordereaux
+    ' =========================
+
+    usecase "Lister les bordereaux de livraison" as LBL
+
+    usecase "Réceptionner un BL" as RBL
+    usecase "Afficher les lignes d'approvisionnement" as LAPP
+}
+
+
+' =========================
+' Authentification
+' =========================
+ASA ..> SC : <<include>>
+LBL ..> SC : <<include>>
+
+' =========================
+' Associations acteur
+' =========================
+
+Stock --> ASA
+Stock --> LBL
+Admin --> ASA
+Admin --> LBL
+
+
+' =========================
+' Statistiques
+' =========================
+
+ASA ..> CTE : <<include>>
+ASA ..> BR : <<include>>
+ASA ..> FA : <<include>>
+
+
+' =========================
+' Bordereaux
+' =========================
+
+LBL ..> RBL : <<extend>>
+LBL ..> LAPP : <<extend>>
+
+@enduml

@@ -1,0 +1,73 @@
+@startuml GestionDettes
+
+left to right direction
+
+actor "Vente" as Vente
+actor "Admin" as Admin
+
+rectangle "Gestion des Dettes" {
+
+    usecase "Se connecter" as SC
+
+
+    ' =========================
+    ' Statistiques
+    ' =========================
+
+    usecase "Afficher les statistiques" as ASD
+
+    usecase "Créances actives" as CA
+    usecase "Clients débiteurs" as CD
+    usecase "Total des recouvrements" as TR
+
+
+    ' =========================
+    ' Registre des dettes
+    ' =========================
+
+    usecase "Afficher le registre des dettes actives" as ARDA
+
+    usecase "Rembourser une dette" as RD
+    usecase "Lister les paiements" as LP
+    usecase "Lister les articles de la vente à crédit" as LAVC
+    usecase "Filtrer par client" as FPC
+}
+
+
+' =========================
+' Authentification
+' =========================
+
+ASD  ..> SC : <<include>>
+ARDA ..> SC : <<include>>
+
+
+' =========================
+' Associations acteur
+' =========================
+
+Vente --> ASD
+Vente --> ARDA
+Admin --> ASD
+Admin --> ARDA
+
+
+' =========================
+' Statistiques
+' =========================
+
+ASD ..> CA : <<include>>
+ASD ..> CD : <<include>>
+ASD ..> TR : <<include>>
+
+
+' =========================
+' Dettes actives
+' =========================
+
+ARDA ..> RD : <<extend>>
+ARDA ..> LP : <<extend>>
+ARDA ..> LAVC : <<extend>>
+ARDA ..> FPC : <<extend>>
+
+@enduml

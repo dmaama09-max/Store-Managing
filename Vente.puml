@@ -1,0 +1,87 @@
+@startuml VentePOS
+
+left to right direction
+
+actor "Vente" as Vente
+actor "Admin" as Admin
+
+rectangle "Ventes / POS" {
+
+    usecase "Se connecter" as SC
+
+    ' =========================
+    ' Statistiques
+    ' =========================
+
+    usecase "Afficher les statistiques de vente" as ASV
+
+    usecase "CA encaissé net" as CAE
+    usecase "Encours client total" as ECT
+    usecase "Commandes enregistrées" as CER
+
+
+    ' =========================
+    ' Nouvelle vente
+    ' =========================
+
+    usecase "Enregistrer une nouvelle vente" as ENV
+
+    usecase "Lister les clients acheteurs" as LCA
+    usecase "Lister les articles" as LA
+    usecase "Lister les types de règlement" as LTR
+    usecase "Ajouter une avance" as AA
+
+
+    ' =========================
+    ' Registre des ventes
+    ' =========================
+
+    usecase "Afficher le registre général des ventes" as ARV
+
+    usecase "Afficher les lignes de commande" as ALC
+}
+
+' =========================
+' Authentification
+' =========================
+ASV ..> SC : <<include>>
+ENV ..> SC : <<include>>
+ARV ..> SC : <<include>>
+
+' =========================
+' Associations acteur
+' =========================
+
+Vente --> ASV
+Vente --> ENV
+Vente --> ARV
+Admin --> ASV
+Admin --> ARV
+
+
+' =========================
+' Statistiques
+' =========================
+
+ASV ..> CAE : <<include>>
+ASV ..> ECT : <<include>>
+ASV ..> CER : <<include>>
+
+
+' =========================
+' Enregistrement vente
+' =========================
+
+ENV ..> LCA : <<include>>
+ENV ..> LA : <<include>>
+ENV ..> LTR : <<include>>
+ENV ..> AA : <<include>>
+
+
+' =========================
+' Registre
+' =========================
+
+ARV ..> ALC : <<extend>>
+
+@enduml

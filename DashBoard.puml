@@ -1,0 +1,132 @@
+@startuml Dashboard
+
+left to right direction
+
+actor "Admin" as Admin
+
+rectangle "Dashboard" {
+
+    usecase "Se connecter" as SC
+
+    ' =========================
+    ' Statistiques
+    ' =========================
+
+    usecase "Afficher les statistiques" as AS
+
+    usecase "Ventes courantes" as VC
+    usecase "Dettes à récupérer" as DAR
+    usecase "Volume approvisionné" as VA
+    usecase "Valeur du stock" as VS
+    usecase "Taux de recouvrement" as TR
+    usecase "Panier moyen" as PM
+
+
+    ' =========================
+    ' Flux de ventes
+    ' =========================
+
+    usecase "Lister le flux des ventes récentes" as LVR
+
+
+    ' =========================
+    ' Dettes du jour
+    ' =========================
+
+    usecase "Lister les dettes du jour" as LDJ
+
+
+    ' =========================
+    ' Ruptures et alertes
+    ' =========================
+
+    usecase "Lister les ruptures et alertes" as LRA
+
+    usecase "Commander rapidement un produit" as CRP
+
+
+    ' =========================
+    ' Livraisons du jour
+    ' =========================
+
+    usecase "Lister les livraisons du jour" as LLD
+
+
+    ' =========================
+    ' Clients débiteurs
+    ' =========================
+
+    usecase "Lister les clients débiteurs" as LCD
+
+    usecase "Lister les détails des dettes en cours" as LDDC
+
+
+    ' =========================
+    ' Soldes fournisseurs
+    ' =========================
+
+    usecase "Lister les soldes fournisseurs" as LSF
+
+    usecase "Lister le détail d'une facture" as LDF
+
+    usecase "Tout payer" as TP
+}
+
+' =========================
+' Authentification
+' =========================
+AS  ..> SC : <<include>>
+LVR ..> SC : <<include>>
+LDJ ..> SC : <<include>>
+LRA ..> SC : <<include>>
+LLD ..> SC : <<include>>
+LCD ..> SC : <<include>>
+LSF ..> SC : <<include>>
+
+' =========================
+' Associations acteur
+' =========================
+
+Admin --> AS
+Admin --> LVR
+Admin --> LDJ
+Admin --> LRA
+Admin --> LLD
+Admin --> LCD
+Admin --> LSF
+
+
+' =========================
+' Statistiques
+' =========================
+
+AS ..> VC : <<include>>
+AS ..> DAR : <<include>>
+AS ..> VA : <<include>>
+AS ..> VS : <<include>>
+AS ..> TR : <<include>>
+AS ..> PM : <<include>>
+
+
+' =========================
+' Ruptures
+' =========================
+
+LRA ..> CRP : <<extend>>
+
+
+' =========================
+' Clients débiteurs
+' =========================
+
+LCD ..> LDDC : <<extend>>
+
+
+' =========================
+' Fournisseurs
+' =========================
+
+LSF ..> LDF : <<extend>>
+LSF ..> TP : <<extend>>
+
+@enduml

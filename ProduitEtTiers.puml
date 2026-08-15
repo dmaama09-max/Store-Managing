@@ -1,0 +1,112 @@
+@startuml ProduitsEtTiers
+
+left to right direction
+
+actor "Admin" as Admin
+actor "Stock" as Stock
+actor "Inventaire" as Inventaire
+
+rectangle "Produits et Tiers" {
+
+    usecase "Se connecter" as SC
+
+
+    ' =========================
+    ' Statistiques
+    ' =========================
+
+    usecase "Afficher les statistiques" as ASP
+
+    usecase "Valeur totale du stock" as VTS
+    usecase "Articles au catalogue" as AAC
+    usecase "Clients enregistrés" as CE
+
+
+    ' =========================
+    ' Gestion Produits
+    ' =========================
+
+    usecase "Gérer les produits" as GP
+
+    usecase "Enregistrer un produit" as EP
+    usecase "Lister les produits" as LPR
+
+
+    ' =========================
+    ' Gestion Clients
+    ' =========================
+
+    usecase "Gérer les clients" as GC
+
+    usecase "Enregistrer un client" as ECL
+    usecase "Lister les clients" as LC
+
+
+    ' =========================
+    ' Gestion Fournisseurs
+    ' =========================
+
+    usecase "Gérer les fournisseurs" as GF
+
+    usecase "Enregistrer un fournisseur" as EFR
+    usecase "Lister les fournisseurs" as LF
+}
+
+
+' =========================
+' Authentification
+' =========================
+ASP ..> SC : <<include>>
+GP  ..> SC : <<include>>
+GC  ..> SC : <<include>>
+GF  ..> SC : <<include>>
+
+' =========================
+' Associations acteur
+' =========================
+
+Admin --> ASP
+Admin --> GP
+Admin --> GC
+Admin --> GF
+
+Stock --> GP
+Stock --> LPR
+
+Inventaire --> LPR
+Inventaire --> ASP
+
+
+' =========================
+' Statistiques
+' =========================
+
+ASP ..> VTS : <<include>>
+ASP ..> AAC : <<include>>
+ASP ..> CE : <<include>>
+
+
+' =========================
+' Produits
+' =========================
+
+GP ..> EP : <<extend>>
+GP ..> LPR : <<extend>>
+
+
+' =========================
+' Clients
+' =========================
+
+GC ..> ECL : <<extend>>
+GC ..> LC : <<extend>>
+
+
+' =========================
+' Fournisseurs
+' =========================
+
+GF ..> EFR : <<extend>>
+GF ..> LF : <<extend>>
+
+@enduml

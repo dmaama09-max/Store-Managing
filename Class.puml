@@ -1,0 +1,134 @@
+@startuml ClassesERP
+
+' =========================
+' Enum pour les rôles
+' =========================
+enum Role {
+  ADMIN
+  VENTE
+  STOCK
+  INVENTAIRE
+}
+
+' =========================
+' Utilisateur
+' =========================
+class Utilisateur {
+  -id: int
+  -login: string
+  -motDePasse: string
+  -role: Role
+  +authentifier(login: string, mdp: string): bool
+  +getRole(): Role
+}
+
+' =========================
+' Produit
+' =========================
+class Produit {
+  -id: int
+  -reference: string
+  -nom: string
+  -prixAchat: float
+  -prixVente: float
+  -quantiteStock: int
+  -seuilAlerte: int
+  +decrementerStock(qte: int): void
+  +incrementerStock(qte: int): void
+  +estEnRupture(): bool
+}
+
+' =========================
+' Client
+' =========================
+class Client {
+  -id: int
+  -nom: string
+  -telephone: string
+  -limiteCredit: float
+  +peutAcheterACredit(montant: float): bool
+}
+
+' =========================
+' Fournisseur
+' =========================
+class Fournisseur {
+  -id: int
+  -nom: string
+  -contact: string
+}
+
+' =========================
+' Commande (Vente)
+' =========================
+class Commande {
+  -id: int
+  -dateVente: DateTime
+  -typeReglement: string
+  -montantTotal: float
+  -statut: string
+  +calculerTotal(): float
+  +validerVente(): bool
+}
+
+class LigneCommande {
+  -quantite: int
+  -prixUnitaire: float
+  +calculerSousTotal(): float
+}
+
+' =========================
+' Dette / Paiement
+' =========================
+class Dette {
+  -id: int
+  -montantInitial: float
+  -montantRestant: float
+  -statut: string
+  -dateEcheance: DateTime
+  +enregistrerPaiement(montant: float): void
+  +estSoldee(): bool
+}
+
+class Paiement {
+  -id: int
+  -montant: float
+  -date: DateTime
+  -modePaiement: string
+}
+
+' =========================
+' Approvisionnement
+' =========================
+class Approvisionnement {
+  -id: int
+  -dateReception: DateTime
+  -statut: string
+  +receptionner(): void
+}
+
+class LigneApprovisionnement {
+  -quantite: int
+  -prixAchatUnitaire: float
+}
+
+' =========================
+' Associations
+' =========================
+Utilisateur "1" -- "0..*" Commande : enregistre >
+Utilisateur --> Role
+
+Client "1" -- "0..*" Commande
+Commande "1" *-- "1..*" LigneCommande
+Produit "1" -- "0..*" LigneCommande
+
+Commande "0..1" -- "0..1" Dette : génère >
+Client "1" -- "0..*" Dette
+Dette "1" *-- "0..*" Paiement
+
+Fournisseur "1" -- "0..*" Approvisionnement
+Approvisionnement "1" *-- "1..*" LigneApprovisionnement
+Produit "1" -- "0..*" LigneApprovisionnement
+Utilisateur "1" -- "0..*" Approvisionnement : réceptionne >
+
+@enduml
