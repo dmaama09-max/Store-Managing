@@ -22,9 +22,15 @@
   - Hésitation sur le choix d'utiliser la généralisation d'acteurs.
 
 #### Step 1.2 : Schéma SQL PostgreSQL / SQLite (20h30 - 22h00)
-- **Heure de réalisation** :
+- **Heure de réalisation** :02h30 - 04h00
 - **Ce qui a été fait** :
+  Écriture de schema.sql (PostgreSQL) avec les 10 tables correspondant au diagramme de classes : utilisateurs, produits, clients, fournisseurs, commandes, lignes_commande, dettes, paiements, approvisionnements, lignes_approvisionnement.
+Ajout de contraintes CHECK pour garantir la cohérence métier (ex: quantite_stock >= 0, montant_restant >= 0, role IN (...)).
+Ajout de clés étrangères (FK) avec des règles ON DELETE adaptées (CASCADE pour les lignes détail, RESTRICT pour les entités de référence comme clients/produits).
+Écriture de schema_sqlite.sql, version équivalente adaptée aux types SQLite (TEXT/REAL/INTEGER au lieu de VARCHAR/NUMERIC/SERIAL), avec activation de PRAGMA foreign_keys = ON.
+
 - **Difficultés / Obstacles** :
+
 
 #### Step 1.3 : Singleton Database & Fallback Automatique (22h00 - 23h00)
 - **Heure de réalisation** :
