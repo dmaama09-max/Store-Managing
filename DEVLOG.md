@@ -68,7 +68,7 @@ Ajout de clés étrangères (FK) avec des règles ON DELETE adaptées (CASCADE p
 - Compréhension de la syntaxe imbriquée strtoupper(substr(preg_replace(...))) pour générer un préfixe de référence à partir du nom d'un produit (fonctions PHP évaluées de l'intérieur vers l'extérieur).
 
 #### Step 2.2 : Repositories & SQL Sécurisé (11h00 - 13h00)
-- **Heure de réalisation** :
+- **Heure de réalisation** :11h00 - 13h00
 - **Ce qui a été fait** :
 - Création de ProduitRepository.php, ClientRepository.php, FournisseurRepository.php dans src/Repository/, chacun avec les méthodes create(), findById(), findAll(), update(), delete().
 - Toutes les requêtes SQL utilisent des requêtes préparées PDO (prepare() + execute([...]) avec des paramètres nommés :xxx) pour se protéger des injections SQL, conformément à la charte du projet.
@@ -81,8 +81,12 @@ Ajout de clés étrangères (FK) avec des règles ON DELETE adaptées (CASCADE p
 - Attention particulière portée à la BDD qui doit être fonctionnelle (SQLite/PostgreSQL) avant de pouvoir tester réellement create()/findAll(), contrairement aux entités du Step 2.1 qui pouvaient être testées sans base de données.
 
 #### Step 2.3 : Service Métier Vente POS & Transaction SQL (14h00 - 17h00)
-- **Heure de réalisation** :
+- **Heure de réalisation** : 14h00 - 17h00
 - **Ce qui a été fait** :
+- Création de src/Service/VenteService.php, qui centralise toute la logique métier d'une vente : construction du panier, vérification du stock disponible ligne par ligne, vérification de la limite de crédit du client si le règlement est à crédit, décrémentation du stock, création de la Dette associée si besoin.
+- Implémentation de la méthode validerVente() sous une transaction SQL complète (beginTransaction() / commit() / rollBack()) : soit toutes les écritures (commande, lignes, décrémentation stock, dette) sont validées ensemble, soit aucune ne l'est en cas d'erreur en cours de route.
+- Le prix unitaire de chaque LigneCommande est figé au moment de la vente (copié depuis Produit::getPrixVente()), pour ne pas être affecté si le prix du produit change plus tard.
+- Choix assumé de garder les méthodes de persistance (creerCommande(), creerLigneCommande(), creerDette()) en méthodes privées directement dans VenteService, plutôt que de créer déjà CommandeRepository/DetteRepository, car ces Repository sont prévus dimanche (Step 3.1). Ce SQL sera extrait proprement à ce moment-là.
 - **Difficultés / Obstacles** :
 
 #### Step 2.4 : Controller POS & Vue Caisse (17h00 - 20h00)
@@ -92,7 +96,7 @@ Ajout de clés étrangères (FK) avec des règles ON DELETE adaptées (CASCADE p
 
 ---
 
-### 🚀 [Dimanche - Phase 3] : Dettes, Approvisionnements & Rôles
+###  [Dimanche - Phase 3] : Dettes, Approvisionnements & Rôles
 
 #### Step 3.1 : Gestion des Dettes & Remboursements (09h00 - 11h30)
 - **Heure de réalisation** :
