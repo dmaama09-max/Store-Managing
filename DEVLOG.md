@@ -125,9 +125,17 @@ Ajout de clés étrangères (FK) avec des règles ON DELETE adaptées (CASCADE p
 - Compréhension du mécanisme d'hydratation "rejouée" dans DetteRepository : lors de la relecture d'une dette déjà partiellement remboursée depuis la base, le Repository appelle enregistrerPaiement() avec le montant déjà versé (calculé par différence) plutôt que de forcer directement montantRestant, afin de réutiliser la même règle métier que pour un nouveau remboursement et de respecter l'encapsulation de l'entité.
 
 #### Step 3.2 : Approvisionnements & Réception BL (11h30 - 13h30)
-- **Heure de réalisation** :
+- **Heure de réalisation** :11h30 - 13h30
 - **Ce qui a été fait** :
+- Création de ApprovisionnementRepository.php : gestion des bons de livraison et de leurs lignes (create, createLigne, findById, findLignesBrutes, findEnAttenteAvecDetails, updateStatut, updateQuantiteLigne).
+- Création de src/Service/SupplyService.php avec deux méthodes principales : creerBonDeLivraison() (nouveau BL au statut EN_ATTENTE, sans toucher au stock) et receptionnerBonDeLivraison() (le cœur du step), qui incrémente réellement le stock de chaque produit concerné et fait passer le BL à RECEPTIONNE, le tout sous transaction SQL.
+- Réutilisation directe de Produit::incrementerStock($qte, $prixAchatUnitaire), codée dès le Step 2.1, pour recalculer automatiquement le prix d'achat moyen pondéré du produit à chaque réception — la logique métier anticipée dès la conception des entités trouve enfin son utilité concrète.
+- Gestion du cas d'une livraison partielle : la quantité réellement reçue (saisie dans le formulaire) peut différer de la quantité initialement commandée ; dans ce cas, la ligne d'approvisionnement est mise à jour en base pour refléter la réalité.
+- Création de SupplyController.php et views/supplies/index.php, avec le registre des BL en attente (fidèle au HTML existant) et un formulaire de création rapide de BL, nécessaire pour pouvoir tester la réception (non explicitement prévu dans le planning initial, qui ne listait que la réception).
 - **Difficultés / Obstacles** :
+- Constat que le planning ne prévoyait que la réception des BL, sans mécanisme de création — nécessité d'ajouter creerBonDeLivraison() pour pouvoir disposer de données de test réalistes, en s'appuyant sur un formulaire déjà présent dans le HTML (quick_supply_product, initialement prévu sur la vue Dashboard) plutôt que d'en inventer un nouveau.
+- Réflexion sur la reconstruction de l'entité Approvisionnement lors de la réception : les lignes lues en base (tableaux associatifs bruts) doivent être retransformées en véritables objets LigneApprovisionnement et ajoutées via ajouterLigne(), afin de pouvoir appeler la méthode métier receptionner() de l'entité (qui vérifie qu'il y a au moins une ligne) plutôt que de modifier le statut directement.
+- Gestion du cas d'une quantité reçue différente de la quantité commandée (livraison partielle), qui nécessite une mise à jour de la ligne en base en plus de l'incrémentation du stock — un cas non trivial à anticiper avant de relire attentivement le formulaire HTML de réception.
 
 #### Step 3.3 : AuthManager & Contrôle des Rôles (14h30 - 16h30)
 - **Heure de réalisation** :
