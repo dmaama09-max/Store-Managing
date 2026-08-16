@@ -51,14 +51,34 @@ Ajout de clés étrangères (FK) avec des règles ON DELETE adaptées (CASCADE p
 ### [Samedi - Phase 2] : POO, Repositories & Ventes POS
 
 #### Step 2.1 : Entités POO Pure (09h00 - 11h00)
-- **Heure de réalisation** :
+- **Heure de réalisation** : 09h00 - 11h00 (avec débordement pour les ajustements liés au HTML/CSS)
 - **Ce qui a été fait** :
+- Création des 9 entités du diagramme de classes dans src/Model/Entity/ : Produit, Client, Fournisseur, Utilisateur, Commande, LigneCommande, Dette, Paiement, Approvisionnement, LigneApprovisionnement.
+- Toutes les entités respectent l'encapsulation stricte : attributs private, accès uniquement via getters et méthodes métier (decrementerStock(), peutAcheterACredit(), enregistrerPaiement(), etc.).
+- Remplacement des constantes de classe pour le rôle utilisateur par un vrai enum PHP (Role.php dans src/Model/Enum/), pour rester fidèle au diagramme de classes UML qui spécifiait enum Role. Le typage Role (au lieu de string) empêche à la compilation d'assigner une valeur de rôle invalide.
+- Confrontation des entités au fichier HTML/CSS de la maquette (storemanager_pro_app.html) déjà réalisé : plusieurs écarts détectés entre les champs des formulaires et les entités (ex: Client avait un seul champ nom alors que le formulaire sépare prenom/nom et ajoute un email; Fournisseur avait un champ générique contact alors que le formulaire distingue telephone/adresse/email).
+- Décision de ne pas modifier le HTML (déjà finalisé) et d'adapter les entités PHP pour coller exactement aux champs du formulaire, plutôt que l'inverse.
+- Pour Produit, le formulaire ne demande que nom, prix_unitaire et quantite_stock (pas de reference, prix_achat, seuil_alerte). Adaptation : reference générée automatiquement via preg_replace/substr/strtoupper sur le nom + un code aléatoire, prixAchat initialisé à 0 et recalculé en moyenne pondérée dans incrementerStock() lors d'une future réception d'approvisionnement, seuilAlerte avec une valeur par défaut.
+- Mise à jour de schema.sql et schema_sqlite.sql en conséquence (tables clients et fournisseurs), sans risque car les scripts n'avaient pas encore été exécutés en base.
 - **Difficultés / Obstacles** :
+- Différence entre constantes de classe et enum PHP mal comprise au départ : compris que l'enum apporte une vérification à la compilation (impossible d'assigner une valeur invalide), alors que les constantes ne sont vérifiées qu'à l'exécution via un in_array() manuel.
+- Question sur la cohérence entre le diagramme de classes UML (qui prévoyait un enum Role) et le code initial (constantes) : correction nécessaire pour que le code soit fidèle à la conception, un point qui peut être demandé à l'oral.
+- Écart découvert tardivement entre les formulaires HTML déjà conçus et les entités PHP en cours de développement (Client, Fournisseur, Produit) : nécessité d'arbitrer entre modifier le HTML ou adapter le PHP. Choix fait de préserver le HTML et d'enrichir la logique PHP (génération automatique de référence, moyenne pondérée du prix d'achat) pour rester cohérent sans tout reprendre.
+- Blocage temporaire à l'exécution de schema_sqlite.sql dans VS Code (erreur de syntaxe), résolu en vérifiant l'outil utilisé et le fichier exact exécuté.
+- Compréhension de la syntaxe imbriquée strtoupper(substr(preg_replace(...))) pour générer un préfixe de référence à partir du nom d'un produit (fonctions PHP évaluées de l'intérieur vers l'extérieur).
 
 #### Step 2.2 : Repositories & SQL Sécurisé (11h00 - 13h00)
 - **Heure de réalisation** :
 - **Ce qui a été fait** :
+- Création de ProduitRepository.php, ClientRepository.php, FournisseurRepository.php dans src/Repository/, chacun avec les méthodes create(), findById(), findAll(), update(), delete().
+- Toutes les requêtes SQL utilisent des requêtes préparées PDO (prepare() + execute([...]) avec des paramètres nommés :xxx) pour se protéger des injections SQL, conformément à la charte du projet.
+- Mise en place du principe d'hydratation : une méthode privée hydrater() dans chaque Repository transforme une ligne SQL brute (tableau associatif) en véritable objet (Produit, Client, Fournisseur), en passant par le constructeur avec des arguments nommés.
+- Ajout de méthodes spécifiques au métier : findEnRupture() dans ProduitRepository (produits sous le seuil d'alerte) et findDebiteurs() dans ClientRepository (clients ayant un encours de dette actif, calculé via une jointure SQL avec la table dettes plutôt que stocké directement dans clients).
 - **Difficultés / Obstacles** :
+- Compréhension du rôle exact de la méthode hydrater() : bien saisir que c'est la seule fonction du Repository qui connaît à la fois les noms de colonnes SQL et la structure du constructeur PHP, ce qui centralise les changements en un seul endroit si le schéma évolue.
+- Découverte de la syntaxe des "named arguments" de PHP 8 (nom: $ligne['nom']) pour éviter les erreurs d'ordre dans les constructeurs à plusieurs paramètres.
+- La requête de findDebiteurs() utilise une jointure (INNER JOIN) combinée à GROUP BY et HAVING, plus avancée que les requêtes simples déjà maîtrisées (SELECT ... WHERE) — notion à approfondir avant l'oral pour être capable de l'expliquer ligne par ligne si le formateur la choisit au hasard.
+- Attention particulière portée à la BDD qui doit être fonctionnelle (SQLite/PostgreSQL) avant de pouvoir tester réellement create()/findAll(), contrairement aux entités du Step 2.1 qui pouvaient être testées sans base de données.
 
 #### Step 2.3 : Service Métier Vente POS & Transaction SQL (14h00 - 17h00)
 - **Heure de réalisation** :
