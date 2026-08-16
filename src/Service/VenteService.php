@@ -11,16 +11,13 @@ require_once __DIR__ . '/../Repository/ClientRepository.php';
  * VenteService
  *
  * Contient TOUTE la logique metier d'une vente au comptoir (POS) :
- * - construire le panier (lignes produit + quantite)
- * - verifier le stock disponible
- * - verifier la limite de credit si paiement a credit
- * - enregistrer la vente en base sous UNE SEULE transaction SQL
- *
- * Pourquoi une transaction ? Une vente touche PLUSIEURS tables
- * (commandes, lignes_commande, produits, eventuellement dettes).
- * Si une erreur survient a la 3e ligne sur 5, on ne veut PAS se
- * retrouver avec une commande a moitie enregistree et un stock
- * decremente pour rien. La transaction garantit : tout ou rien.
+ * - verifier le stock disponible pour chaque article du panier
+ * - calculer le total de la vente
+ * - comparer le montant verse (avance) au total :
+ *      - montant_verse >= total  -> vente payee comptant (pas de dette)
+ *      - montant_verse < total   -> le reste devient une Dette
+ *        (montant_verse = 0 -> "credit total", montant_verse > 0 -> "avance")
+ * - enregistrer le tout en base sous UNE SEULE transaction SQL
  */
 class VenteService
 {
@@ -39,65 +36,67 @@ class VenteService
      * Valide une vente complete a partir d'un panier.
      *
      * @param int    $clientId
-     * @param int    $utilisateurId   L'utilisateur (vendeur) qui enregistre la vente
-     * @param string $typeReglement   Commande::TYPE_ESPECES | TYPE_CREDIT | TYPE_MOBILE_MONEY
-     * @param array  $panier          Ex: [['produit_id' => 3, 'quantite' => 2], ...]
+     * @param int    $utilisateurId  Le vendeur qui enregistre la vente
+     * @param string $modePaiement   Libelle venant du formulaire : "Wave", "Orange Money", "Especes"
+     * @param float  $montantVerse   Montant deja paye par le client (0 si credit total)
+     * @param array  $panier         Ex: [['produit_id' => 3, 'quantite' => 2], ...]
      *
-     * @return Commande La commande creee, avec son id et ses lignes
-     *
-     * @throws Exception Si le stock est insuffisant, si la limite de credit
-     *                    est depassee, ou si le panier est vide.
+     * @return Commande
+     * @throws Exception Si stock insuffisant, limite de credit depassee, ou panier vide.
      */
-    public function validerVente(int $clientId, int $utilisateurId, string $typeReglement, array $panier): Commande
-    {
+    public function validerVente(
+        int $clientId,
+        int $utilisateurId,
+        string $modePaiement,
+        float $montantVerse,
+        array $panier
+    ): Commande {
         if (empty($panier)) {
             throw new Exception("Le panier est vide, impossible de valider la vente.");
         }
+        if ($montantVerse < 0) {
+            throw new Exception("Le montant versé ne peut pas être négatif.");
+        }
 
-        // ===== DEBUT DE LA TRANSACTION =====
-        // A partir d'ici, aucune modification n'est definitive en base
-        // tant qu'on n'a pas appele commit().
         $this->pdo->beginTransaction();
 
         try {
-            // ----- 1. Construire la Commande (en memoire pour l'instant) -----
-            $commande = new Commande(
-                clientId: $clientId,
-                utilisateurId: $utilisateurId,
-                typeReglement: $typeReglement,
-            );
+            // ----- 1. Verifier le stock et calculer le total, SANS rien modifier encore -----
+            $lignesAConstruire = []; // [['produit' => Produit, 'quantite' => int], ...]
+            $totalVente = 0.0;
 
-            $produitsConcernes = []; // on garde les objets Produit pour les decrementer plus tard
-
-            // ----- 2. Verifier le stock et construire les lignes -----
             foreach ($panier as $item) {
-                $produit = $this->produitRepository->findById($item['produit_id']);
+                $produit = $this->produitRepository->findById((int) $item['produit_id']);
 
                 if ($produit === null) {
                     throw new Exception("Produit introuvable (id: {$item['produit_id']}).");
                 }
 
-                // decrementerStock() leve une Exception automatiquement
-                // si la quantite demandee depasse le stock disponible.
-                // On la teste ici SANS l'appliquer definitivement, pour
-                // detecter le probleme avant de toucher a quoi que ce soit.
-                if ($item['quantite'] > $produit->getQuantiteStock()) {
-                    throw new Exception("Stock insuffisant pour '{$produit->getNom()}' (disponible: {$produit->getQuantiteStock()}, demande: {$item['quantite']}).");
+                $quantite = (int) $item['quantite'];
+
+                if ($quantite > $produit->getQuantiteStock()) {
+                    throw new Exception("Stock insuffisant pour '{$produit->getNom()}' (disponible: {$produit->getQuantiteStock()}, demandé: {$quantite}).");
                 }
 
-                $ligne = new LigneCommande(
-                    produitId: $produit->getId(),
-                    quantite: $item['quantite'],
-                    prixUnitaire: $produit->getPrixVente(), // prix FIGE au moment de la vente
-                );
-
-                $commande->ajouterLigne($ligne);
-                $produitsConcernes[] = ['produit' => $produit, 'quantite' => $item['quantite']];
+                $lignesAConstruire[] = ['produit' => $produit, 'quantite' => $quantite];
+                $totalVente += $produit->getPrixVente() * $quantite;
             }
 
-            $totalVente = $commande->calculerTotal();
+            // ----- 2. Determiner le type de reglement selon le montant verse -----
+            $montantRestant = round($totalVente - $montantVerse, 2);
 
-            // ----- 3. Si vente a credit : verifier la limite du client -----
+            if ($montantRestant <= 0) {
+                // Paye integralement : le type depend juste du canal utilise
+                $typeReglement = in_array($modePaiement, ['Wave', 'Orange Money'], true)
+                    ? Commande::TYPE_MOBILE_MONEY
+                    : Commande::TYPE_ESPECES;
+                $montantRestant = 0.0;
+            } else {
+                // Il reste un solde impaye -> vente a credit (totale ou partielle)
+                $typeReglement = Commande::TYPE_CREDIT;
+            }
+
+            // ----- 3. Si un reste est du : verifier la limite de credit du client -----
             $client = null;
             if ($typeReglement === Commande::TYPE_CREDIT) {
                 $client = $this->clientRepository->findById($clientId);
@@ -106,16 +105,32 @@ class VenteService
                     throw new Exception("Client introuvable (id: {$clientId}).");
                 }
 
-                if (!$client->peutAcheterACredit($totalVente)) {
+                // Seul le RESTE (pas le total) impacte la limite de credit,
+                // puisque le montant verse est deja regle.
+                if (!$client->peutAcheterACredit($montantRestant)) {
                     throw new Exception(
-                        "Limite de credit depassee pour {$client->getNomComplet()} "
+                        "Limite de crédit dépassée pour {$client->getNomComplet()} "
                         . "(encours actuel: {$client->getEncoursActuel()}, limite: {$client->getLimiteCredit()}, "
-                        . "montant demande: {$totalVente})."
+                        . "reste à devoir: {$montantRestant})."
                     );
                 }
             }
 
-            // ----- 4. Valider la commande (regle metier : au moins 1 ligne) -----
+            // ----- 4. Construire la Commande (en memoire) -----
+            $commande = new Commande(
+                clientId: $clientId,
+                utilisateurId: $utilisateurId,
+                typeReglement: $typeReglement,
+            );
+
+            foreach ($lignesAConstruire as $donnees) {
+                $commande->ajouterLigne(new LigneCommande(
+                    produitId: $donnees['produit']->getId(),
+                    quantite: $donnees['quantite'],
+                    prixUnitaire: $donnees['produit']->getPrixVente(),
+                ));
+            }
+
             $commande->validerVente();
 
             // ----- 5. Persister la commande -----
@@ -126,42 +141,44 @@ class VenteService
             foreach ($commande->getLignes() as $index => $ligne) {
                 $this->creerLigneCommande($commandeId, $ligne);
 
-                $produit = $produitsConcernes[$index]['produit'];
-                $produit->decrementerStock($produitsConcernes[$index]['quantite']);
+                $produit = $lignesAConstruire[$index]['produit'];
+                $produit->decrementerStock($lignesAConstruire[$index]['quantite']);
                 $this->produitRepository->update($produit);
             }
 
-            // ----- 7. Si vente a credit : creer la Dette + mettre a jour l'encours client -----
+            // ----- 7. Si un reste est du : creer la Dette (avec le versement deja applique) -----
             if ($typeReglement === Commande::TYPE_CREDIT && $client !== null) {
                 $dette = new Dette(
                     clientId: $clientId,
                     montantInitial: $totalVente,
                     commandeId: $commandeId,
                 );
+
+                // Si le client a deja verse une avance, on l'applique tout de suite :
+                // montantRestant de la Dette refletera alors le VRAI reste a payer.
+                if ($montantVerse > 0) {
+                    $dette->enregistrerPaiement($montantVerse);
+                }
+
                 $this->creerDette($dette);
 
-                $client->augmenterEncours($totalVente);
+                // L'encours du client n'augmente que du montant reellement du
+                $client->augmenterEncours($montantRestant);
                 $this->clientRepository->update($client);
             }
 
-            // ===== TOUT S'EST BIEN PASSE : on valide definitivement =====
             $this->pdo->commit();
 
             return $commande;
 
         } catch (Exception $e) {
-            // ===== UNE ERREUR EST SURVENUE : on annule TOUT =====
-            // Aucune des ecritures faites depuis beginTransaction() n'est appliquee.
             $this->pdo->rollBack();
-
-            // On relance l'exception pour que le Controller (Step 2.4) sache
-            // qu'il doit afficher un message d'erreur a l'utilisateur.
             throw $e;
         }
     }
 
     // ===== Méthodes privées de persistance =====
-    // (des mini-repositories "maison" en attendant CommandeRepository/DetteRepository,
+    // (SQL temporairement ici en attendant CommandeRepository/DetteRepository,
     //  qui seront extraits proprement dimanche - Step 3.1)
 
     private function creerCommande(Commande $commande, float $total): int

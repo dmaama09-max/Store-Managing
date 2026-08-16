@@ -90,9 +90,19 @@ Ajout de clés étrangères (FK) avec des règles ON DELETE adaptées (CASCADE p
 - **Difficultés / Obstacles** :
 
 #### Step 2.4 : Controller POS & Vue Caisse (17h00 - 20h00)
-- **Heure de réalisation** :
+- **Heure de réalisation** :17h00 - 20h00
 - **Ce qui a été fait** :
+- Création de src/Controller/POSController.php : gère l'affichage de la caisse (GET) et le traitement du formulaire de vente (POST), sans contenir lui-même de règle métier ni de SQL — il délègue tout à VenteService et aux Repository.
+- Création de views/pos/index.php, adaptée directement du HTML/CSS déjà réalisé (storemanager_pro_app.html, section #view-pos) : les <select> client et produit sont désormais générés dynamiquement via des boucles PHP sur $clients et $produits, plutôt que codés en dur.
+- Revue complète de VenteService::validerVente() après relecture attentive du formulaire HTML existant : découverte que le design gère un cas plus fin que prévu — un montant "versé" (avance) comparé au total de la vente, avec le reste qui devient automatiquement une Dette (badges "CRÉDIT TOTAL" si rien n'est versé, "AVANCE (Credit)" si versement partiel). Adaptation de la logique pour comparer montant_verse au total, déterminer le type_reglement en conséquence, et appliquer immédiatement l'avance sur la Dette nouvellement créée via Dette::enregistrerPaiement() (méthode déjà codée au Step 2.1, réutilisée telle quelle).
+- Adaptation du JavaScript du panier (addToCart(), render()) pour générer des champs cachés produit_id[] et quantite[] à chaque ajout d'article, afin que $_POST transmette le panier à POSController — aucune modification des champs visibles du formulaire, uniquement le mécanisme interne d'envoi des données.
+- Ajout d'une méthode listerCommandesAvecLignes() dans le controller (requêtes SQL directes avec jointures) pour alimenter le "Registre Général des Ventes" avec les vraies données de la base.
 - **Difficultés / Obstacles** :
+- Écart découvert tardivement entre la logique métier initialement codée (simple choix ESPECES vs CREDIT) et le vrai comportement attendu par le formulaire HTML (montant versé partiel avec calcul automatique du reste à devoir) — nécessité de revoir VenteService en profondeur après la relecture du HTML.
+- Réflexion sur le fait que seul le montant RESTANT (et non le total de la vente) doit être comparé à la limite de crédit du client, puisque la partie déjà versée ne constitue pas une dette.
+- Compréhension du fonctionnement de require pour partager les variables entre POSController et la vue, sans passer explicitement chaque variable.
+- Décision consciente de garder listerCommandesAvecLignes() avec du SQL direct dans le controller plutôt qu'un CommandeRepository dédié, ce dernier n'étant pas prévu au planning avant dimanche (voire pas du tout prévu explicitement) — point à assumer à l'oral comme une simplification liée au temps disponible.  
+- Gestion encore provisoire de l'utilisateur connecté ($_SESSION['utilisateur_id'] en dur) en attendant AuthManager, prévu dimanche (Step 3.3).
 
 ---
 
