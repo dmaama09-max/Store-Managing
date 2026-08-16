@@ -33,8 +33,10 @@ CREATE TABLE produits (
 -- =========================
 CREATE TABLE clients (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    prenom         TEXT    NOT NULL,
     nom            TEXT    NOT NULL,
     telephone      TEXT,
+    email          TEXT,
     limite_credit  REAL    NOT NULL DEFAULT 0 CHECK (limite_credit >= 0)
 );
 
@@ -42,9 +44,11 @@ CREATE TABLE clients (
 -- Fournisseurs
 -- =========================
 CREATE TABLE fournisseurs (
-    id       INTEGER PRIMARY KEY AUTOINCREMENT,
-    nom      TEXT NOT NULL,
-    contact  TEXT
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    nom        TEXT NOT NULL,
+    telephone  TEXT NOT NULL,
+    adresse    TEXT NOT NULL,
+    email      TEXT
 );
 
 -- =========================
@@ -92,7 +96,7 @@ CREATE TABLE paiements (
     dette_id         INTEGER NOT NULL REFERENCES dettes(id) ON DELETE CASCADE,
     montant          REAL    NOT NULL CHECK (montant > 0),
     date_paiement    TEXT    NOT NULL DEFAULT (datetime('now')),
-    mode_paiement    TEXT    NOT NULL CHECK (mode_paiement IN ('ESPECES', 'MOBILE_MONEY', 'VIREMENT'))
+    mode_paiement    TEXT    NOT NULL CHECK (mode_paiement IN ('Orange Money', 'Wave', 'Especes', 'Virement'))
 );
 
 -- =========================

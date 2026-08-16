@@ -1,10 +1,19 @@
 <?php
 
+/**
+ * Entité Paiement
+ *
+ * Représente UN remboursement effectué sur une Dette.
+ * Les valeurs de MODE_* correspondent EXACTEMENT aux "value" du <select>
+ * "Canal de Paiement" du formulaire HTML de remboursement, pour ne pas
+ * avoir a faire de conversion/mapping entre le formulaire et la base.
+ */
 class Paiement
 {
-    public const MODE_ESPECES      = 'ESPECES';
-    public const MODE_MOBILE_MONEY = 'MOBILE_MONEY';
-    public const MODE_VIREMENT     = 'VIREMENT';
+    public const MODE_ORANGE_MONEY = 'Orange Money';
+    public const MODE_WAVE         = 'Wave';
+    public const MODE_ESPECES      = 'Especes';
+    public const MODE_VIREMENT     = 'Virement';
 
     private ?int $id;
     private int $detteId;

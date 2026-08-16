@@ -109,9 +109,20 @@ Ajout de clés étrangères (FK) avec des règles ON DELETE adaptées (CASCADE p
 ###  [Dimanche - Phase 3] : Dettes, Approvisionnements & Rôles
 
 #### Step 3.1 : Gestion des Dettes & Remboursements (09h00 - 11h30)
-- **Heure de réalisation** :
+- **Heure de réalisation** :09h00 - 11h30
 - **Ce qui a été fait** :
+- Création de DetteRepository.php et PaiementRepository.php dans src/Repository/, avec requêtes préparées PDO (create, findById, findActives, findByClient, update, findByDette, sommeTotale).
+- Création de src/Service/DebtService.php : la méthode rembourserDette() orchestre sous une seule transaction SQL la mise à jour de la Dette (montant_restant/statut), l'enregistrement du Paiement, et la diminution de l'encours du Client — les trois doivent réussir ensemble ou échouer ensemble.
+- Refactorisation de VenteService.php pour utiliser le nouveau DetteRepository au lieu du SQL temporaire écrit hier (Step 2.3), comme prévu et documenté dans le DEVLOG de la veille.
+- Révision de Paiement.php : les modes de paiement (Orange Money, Wave, Especes, Virement) ont été alignés EXACTEMENT sur les valeurs du formulaire HTML de remboursement, plutôt que d'utiliser des constantes génériques (MOBILE_MONEY) qui ne correspondaient pas au design déjà réalisé.
+- Création de DetteController.php (non explicitement prévu dans le planning, mais nécessaire pour orchestrer l'affichage et le traitement du formulaire, sur le même principe que POSController) et de views/dettes/index.php, reprenant fidèlement la structure du registre des dettes actives, avec les tiroirs (drawers) Paiements / Articles / Remboursement.
+- Correction de la contrainte CHECK PostgreSQL sur paiements.mode_paiement via ALTER TABLE ... DROP/ADD CONSTRAINT, pour que les valeurs acceptées en base correspondent exactement (casse comprise) à ce que le formulaire envoie.
 - **Difficultés / Obstacles** :
+- Erreur de casse dans la première tentative de correction de la contrainte CHECK ('ESPECES', 'VIREMENT', 'WAVE' en majuscules) alors que le formulaire HTML envoie 'Especes', 'Virement', 'Wave' — rappel que SQL est sensible à la casse par défaut sur les comparaisons de chaînes, et qu'une contrainte mal alignée rejette silencieusement les insertions valides côté PHP.
+- Constat que MOBILE_MONEY (valeur générique initialement prévue) ne correspondait à aucune valeur réelle du formulaire, qui distingue Orange Money et Wave séparément — nécessité de corriger à la fois l'entité Paiement et la contrainte SQL en cohérence.
+- Découverte que ALTER TABLE ... DROP CONSTRAINT est une syntaxe PostgreSQL non disponible telle quelle sous SQLite, confirmant que la connexion active est bien PostgreSQL et non le fallback.
+- Confusion passagère entre les deux vues views/pos/index.php (caisse) et views/dettes/index.php (registre des dettes) lors de la comparaison de fichiers de longueurs différentes — clarification nécessaire pour ne pas écraser l'une par l'autre, les deux fichiers étant indépendants et à conserver chacun à leur emplacement.
+- Compréhension du mécanisme d'hydratation "rejouée" dans DetteRepository : lors de la relecture d'une dette déjà partiellement remboursée depuis la base, le Repository appelle enregistrerPaiement() avec le montant déjà versé (calculé par différence) plutôt que de forcer directement montantRestant, afin de réutiliser la même règle métier que pour un nouveau remboursement et de respecter l'encapsulation de l'entité.
 
 #### Step 3.2 : Approvisionnements & Réception BL (11h30 - 13h30)
 - **Heure de réalisation** :

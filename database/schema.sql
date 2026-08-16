@@ -35,8 +35,10 @@ CREATE TABLE produits (
 -- =========================
 CREATE TABLE clients (
     id             SERIAL PRIMARY KEY,
-    nom            VARCHAR(150)  NOT NULL,
+    prenom         VARCHAR(100)  NOT NULL,
+    nom            VARCHAR(100)  NOT NULL,
     telephone      VARCHAR(30),
+    email          VARCHAR(150),
     limite_credit  NUMERIC(12,2) NOT NULL DEFAULT 0,
     CONSTRAINT chk_limite_credit_positive CHECK (limite_credit >= 0)
 );
@@ -45,9 +47,11 @@ CREATE TABLE clients (
 -- Fournisseurs
 -- =========================
 CREATE TABLE fournisseurs (
-    id       SERIAL PRIMARY KEY,
-    nom      VARCHAR(150) NOT NULL,
-    contact  VARCHAR(100)
+    id         SERIAL PRIMARY KEY,
+    nom        VARCHAR(150) NOT NULL,
+    telephone  VARCHAR(30)  NOT NULL,
+    adresse    VARCHAR(200) NOT NULL,
+    email      VARCHAR(150)
 );
 
 -- =========================
@@ -105,6 +109,32 @@ CREATE TABLE paiements (
     mode_paiement    VARCHAR(20)   NOT NULL,
     CONSTRAINT chk_montant_paiement_positif CHECK (montant > 0),
     CONSTRAINT chk_mode_paiement CHECK (mode_paiement IN ('ESPECES', 'MOBILE_MONEY', 'VIREMENT'))
+);
+ALTER TABLE paiements
+DROP CONSTRAINT chk_mode_paiement;
+
+ALTER TABLE paiements
+ADD CONSTRAINT chk_mode_paiement
+CHECK (
+    mode_paiement IN (
+        'ESPECES',
+        'MOBILE_MONEY',
+        'VIREMENT',
+        'WAVE'
+    )
+);
+ALTER TABLE paiements
+DROP CONSTRAINT chk_mode_paiement;
+
+ALTER TABLE paiements
+ADD CONSTRAINT chk_mode_paiement
+CHECK (
+    mode_paiement IN (
+        'Orange Money',
+        'Wave',
+        'Especes',
+        'Virement'
+    )
 );
 
 -- =========================

@@ -6,6 +6,7 @@ require_once __DIR__ . '/../Model/Entity/LigneCommande.php';
 require_once __DIR__ . '/../Model/Entity/Dette.php';
 require_once __DIR__ . '/../Repository/ProduitRepository.php';
 require_once __DIR__ . '/../Repository/ClientRepository.php';
+require_once __DIR__ . '/../Repository/DetteRepository.php';
 
 /**
  * VenteService
@@ -24,12 +25,14 @@ class VenteService
     private PDO $pdo;
     private ProduitRepository $produitRepository;
     private ClientRepository $clientRepository;
+    private DetteRepository $detteRepository;
 
     public function __construct()
     {
         $this->pdo               = Database::getInstance();
         $this->produitRepository = new ProduitRepository();
         $this->clientRepository  = new ClientRepository();
+        $this->detteRepository   = new DetteRepository();
     }
 
     /**
@@ -160,7 +163,7 @@ class VenteService
                     $dette->enregistrerPaiement($montantVerse);
                 }
 
-                $this->creerDette($dette);
+                $this->detteRepository->create($dette);
 
                 // L'encours du client n'augmente que du montant reellement du
                 $client->augmenterEncours($montantRestant);
@@ -210,24 +213,6 @@ class VenteService
             'produit_id'    => $ligne->getProduitId(),
             'quantite'      => $ligne->getQuantite(),
             'prix_unitaire' => $ligne->getPrixUnitaire(),
-        ]);
-
-        return (int) $this->pdo->lastInsertId();
-    }
-
-    private function creerDette(Dette $dette): int
-    {
-        $sql = "INSERT INTO dettes (commande_id, client_id, montant_initial, montant_restant, statut, date_echeance)
-                VALUES (:commande_id, :client_id, :montant_initial, :montant_restant, :statut, :date_echeance)";
-
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([
-            'commande_id'     => $dette->getCommandeId(),
-            'client_id'       => $dette->getClientId(),
-            'montant_initial' => $dette->getMontantInitial(),
-            'montant_restant' => $dette->getMontantRestant(),
-            'statut'          => $dette->getStatut(),
-            'date_echeance'   => $dette->getDateEcheance()?->format('Y-m-d'),
         ]);
 
         return (int) $this->pdo->lastInsertId();
