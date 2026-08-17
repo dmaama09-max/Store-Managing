@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../Core/Database.php';
+require_once __DIR__ . '/../Core/AuthManager.php';
 require_once __DIR__ . '/../Service/VenteService.php';
 require_once __DIR__ . '/../Repository/ProduitRepository.php';
 require_once __DIR__ . '/../Repository/ClientRepository.php';
@@ -33,6 +34,9 @@ class POSController
      */
     public function handle(): void
     {
+        $auth = new AuthManager();
+        $auth->checkAccess(Role::ADMIN, Role::VENTE);
+
         $messageErreur = null;
         $messageSucces = null;
 
@@ -68,9 +72,9 @@ class POSController
         $modePaiement  = (string) ($post['mode_reglement'] ?? 'Especes');
         $montantVerse  = (float) ($post['montant_verse'] ?? 0);
 
-        // TODO (a remplacer par l'id reel de l'utilisateur connecte,
-        // une fois AuthManager code dimanche - Step 3.3)
-        $utilisateurId = (int) ($_SESSION['utilisateur_id'] ?? 1);
+        // Utilisateur reellement connecte (AuthManager, Step 3.3), fini le TODO d'hier
+        $auth = new AuthManager();
+        $utilisateurId = $auth->utilisateurConnecte()->getId();
 
         if ($clientId <= 0) {
             throw new Exception("Veuillez sélectionner un client.");

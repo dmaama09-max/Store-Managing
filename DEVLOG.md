@@ -138,9 +138,21 @@ Ajout de clés étrangères (FK) avec des règles ON DELETE adaptées (CASCADE p
 - Gestion du cas d'une quantité reçue différente de la quantité commandée (livraison partielle), qui nécessite une mise à jour de la ligne en base en plus de l'incrémentation du stock — un cas non trivial à anticiper avant de relire attentivement le formulaire HTML de réception.
 
 #### Step 3.3 : AuthManager & Contrôle des Rôles (14h30 - 16h30)
-- **Heure de réalisation** :
+- **Heure de réalisation** : 14h30 - 16h30 (dépassement lié à la découverte d'un manque d'architecture globale)
 - **Ce qui a été fait** :
+- Création de UtilisateurRepository.php (manquant depuis le Step 2.2), avec findByLogin() utilisé pour l'authentification.
+- Création de src/Core/AuthManager.php : gère l'ouverture de session (session_start()), la vérification email/mot de passe via Utilisateur::verifierMotDePasse() (codée dès le Step 2.1), et surtout checkAccess(Role ...$rolesAutorises), appelée en tout début de chaque Controller pour filtrer l'accès selon le rôle connecté.
+- Création de AuthController.php (login/logout) et adaptation du formulaire de connexion HTML (ajout des attributs name manquants, passage de onsubmit JS de démo à un vrai method="POST").
+- Découverte majeure en testant : après trois jours à coder des Controllers et vues indépendamment (POS, Dettes, Supplies), aucune pièce ne les reliait entre elles — pas de point d'entrée unique, pas de CSS câblé, pas de vérification de connexion avant d'afficher une page. Le projet semblait "cassé" alors qu'il ne faisait que manquer sa pièce centrale.
+- Construction en urgence de l'architecture manquante : extraction du CSS de storemanager_pro_app.html dans public/assets/style.css, création de views/layout.php (nav + head communs, avec affichage conditionnel des liens de menu selon le rôle), et surtout public/index.php, le vrai routeur : démarre la session, vérifie l'authentification, détermine la vue demandée, applique checkAccess(), appelle le bon Controller, et insère son résultat dans le layout via la mise en tampon de sortie (ob_start()/ob_get_clean()).
+- Ajout de database/seed_users.php pour créer les 4 comptes de démonstration (un par rôle), le mot de passe étant haché via password_hash().
+- Remplacement dans POSController et SupplyController du $_SESSION['utilisateur_id'] = 1 codé en dur depuis samedi par le véritable utilisateur connecté, récupéré via AuthManager::utilisateurConnecte().
 - **Difficultés / Obstacles** :
+- Confusion importante en relançant l'application après plusieurs jours de développement par petits morceaux : sans point d'entrée central, impossible de voir le résultat cohérent du travail effectué, ce qui a donné l'impression que "rien ne fonctionnait" alors que chaque brique individuelle était correcte.
+- Distinction entre le panier géré en mémoire côté JavaScript (Step 2.4) et la session PHP côté serveur : clarification nécessaire que ce sont deux mécanismes différents ne servant pas au même usage (le panier n'a jamais eu besoin d'être stocké en session, contrairement à l'identité de l'utilisateur connecté).
+- Refus initial d'utiliser ReflectionClass pour contourner l'encapsulation de motDePasseHache dans Utilisateur : correction en ajoutant un getter dédié (getMotDePasseHache()), plus simple et plus cohérent avec les principes d'encapsulation défendus depuis le Step 2.1, plutôt qu'un contournement technique.
+- Compréhension du mécanisme de mise en tampon de sortie (ob_start()/ob_get_clean()) pour capturer le HTML généré par un Controller et l'insérer proprement dans le layout commun, plutôt que de le laisser s'afficher directement et de casser la structure de la page.
+- Prise de conscience qu'il aurait été plus judicieux de construire le routeur/layout dès le Step 2.4 (première vue fonctionnelle), plutôt que d'attendre la fin du week-end — point à mentionner à l'oral comme un axe d'amélioration méthodologique identifié.
 
 #### Step 3.4 : Rédaction de l'Autopsie & Push Final (16h30 - 18h00)
 - **Heure de réalisation** :

@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../Core/Database.php';
+require_once __DIR__ . '/../Core/AuthManager.php';
 require_once __DIR__ . '/../Service/DebtService.php';
 require_once __DIR__ . '/../Repository/DetteRepository.php';
 require_once __DIR__ . '/../Repository/PaiementRepository.php';
@@ -30,6 +31,8 @@ class DetteController
 
     public function handle(): void
     {
+        (new AuthManager())->checkAccess(Role::ADMIN, Role::VENTE);
+
         $messageErreur = null;
         $messageSucces = null;
 
